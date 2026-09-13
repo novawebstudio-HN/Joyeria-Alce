@@ -1,124 +1,228 @@
 /* Joyería Alce — catálogo
-   Carga data/catalogo.json, arma la rejilla, filtra por tipo y línea,
-   y abre el visor a pantalla completa. */
+   Dos vistas: inicio (colecciones) y colección (piezas de un tipo, con
+   filtros de material y línea). La ruta vive en el hash: #/aretes?m=plata */
 
 (() => {
   'use strict';
 
   const $ = (sel) => document.querySelector(sel);
 
+  const vistaInicio = $('#vista-inicio');
+  const vistaColeccion = $('#vista-coleccion');
+  const menu = $('#menu');
+  const colecciones = $('#colecciones');
+  const atajos = $('#atajos');
   const rejilla = $('#rejilla');
-  const conteo = $('#conteo');
   const vacio = $('#vacio');
   const centinela = $('#centinela');
-  const filtroTipo = $('#filtro-tipo');
-  const filtroGenero = $('#filtro-genero');
+  const selMaterial = $('#sel-material');
+  const selLinea = $('#sel-linea');
+  const campoMaterial = $('#campo-material');
+  const campoLinea = $('#campo-linea');
+  const btnQuitar = $('#quitar');
 
   const visor = $('#visor');
   const visorImg = $('#visor-img');
-  const visorPie = $('#visor-pie');
 
   const POR_TANDA = 40;
+  const TODO = 'todo';
 
-  let piezas = [];
+  let datos = null;
+  let nombreTipo = {};
+  let nombreGenero = {};
+  let nombreMaterial = {};
+  let ruta = { tipo: TODO, material: TODO, linea: TODO };
   let visibles = [];
+  let mezclaMateriales = false;
   let dibujadas = 0;
   let actual = 0;
   let ultimoFoco = null;
-  let filtros = { tipo: 'todo', genero: 'todo' };
 
   /* ── Arranque ─────────────────────────────────────── */
 
-  // La barra de filtros se pega justo debajo de la cabecera, sea cual sea su alto.
   const cabecera = document.querySelector('.cabecera');
-  const medirCabecera = () => {
+  const medirCabecera = () =>
     document.documentElement.style.setProperty('--alto-cabecera', `${cabecera.offsetHeight}px`);
-  };
   medirCabecera();
   new ResizeObserver(medirCabecera).observe(cabecera);
-
 
   fetch('data/catalogo.json')
     .then((r) => {
       if (!r.ok) throw new Error(r.status);
       return r.json();
     })
-    .then((datos) => {
-      piezas = datos.piezas;
-      montarFiltros(datos);
-      leerHash();
-      aplicarFiltros();
+    .then((d) => {
+      datos = d;
+      d.tipos.forEach((t) => { nombreTipo[t.slug] = t.nombre; });
+      d.generos.forEach((g) => { nombreGenero[g.slug] = g.nombre; });
+      d.materiales.forEach((m) => { nombreMaterial[m.slug] = m.nombre; });
+      montarMenu();
+      montarInicio();
+      window.addEventListener('hashchange', navegar);
+      navegar();
     })
     .catch(() => {
-      conteo.textContent = '';
       vacio.textContent = 'No se pudo cargar el catálogo. Recarga la página.';
       vacio.hidden = false;
     });
 
-  /* ── Filtros ──────────────────────────────────────── */
+  const piezasDe = (tipo) =>
+    tipo === TODO ? datos.piezas : datos.piezas.filter((p) => p.tipo === tipo);
 
-  function montarFiltros(datos) {
-    const cuenta = (clave, valor) => piezas.filter((p) => p[clave] === valor).length;
+  /* ── Inicio ───────────────────────────────────────── */
 
-    const tipos = [{ slug: 'todo', nombre: 'Todo', n: piezas.length }].concat(
-      datos.tipos
-        .map((t) => ({ slug: t.slug, nombre: t.nombre, n: cuenta('tipo', t.slug) }))
-        .filter((t) => t.n > 0)
-    );
-    const generos = [{ slug: 'todo', nombre: 'Todas las líneas', n: null }].concat(
-      datos.generos
-        .map((g) => ({ slug: g.slug, nombre: g.nombre, n: cuenta('genero', g.slug) }))
-        .filter((g) => g.n > 0)
-    );
-
-    tipos.forEach((t) => filtroTipo.appendChild(chip(t, 'tipo')));
-    generos.forEach((g) => filtroGenero.appendChild(chip(g, 'genero')));
-    pintarChips();
+  function montarMenu() {
+    const enlaces = [{ slug: TODO, nombre: 'Todo' }].concat(
+      datos.tipos.filter((t) => piezasDe(t.slug).length));
+    menu.replaceChildren(...enlaces.map((t) => {
+      const a = document.createElement('a');
+      a.href = `#/${t.slug}`;
+      a.textContent = t.nombre;
+      a.dataset.tipo = t.slug;
+      return a;
+    }));
   }
 
-  function chip(item, grupo) {
-    const b = document.createElement('button');
-    b.type = 'button';
-    b.className = 'chip';
-    b.dataset.grupo = grupo;
-    b.dataset.valor = item.slug;
-    b.setAttribute('aria-pressed', 'false');
-    b.innerHTML = item.n === null
-      ? item.nombre
-      : `${item.nombre}<span class="chip__n">${item.n}</span>`;
-    b.addEventListener('click', () => {
-      filtros[grupo] = item.slug;
-      pintarChips();
-      escribirHash();
-      aplicarFiltros();
-      const alto = cabecera.offsetHeight + document.getElementById('filtros').offsetHeight;
-      const tope = document.getElementById('galeria').offsetTop - alto - 8;
-      if (window.scrollY > tope) window.scrollTo({ top: tope, behavior: 'smooth' });
+  function montarInicio() {
+    colecciones.replaceChildren(...datos.tipos
+      .map((t) => ({ t, piezas: piezasDe(t.slug) }))
+      .filter(({ piezas }) => piezas.length)
+      .map(({ t, piezas }) => {
+        const portada = piezas.find((p) => p.id === t.portada) || piezas[0];
+        const a = document.createElement('a');
+        a.className = 'tarjeta';
+        a.href = `#/${t.slug}`;
+        a.innerHTML = `
+          <img class="tarjeta__foto" src="${portada.thumb}" alt="" width="${portada.w}"
+               height="${portada.h}" loading="lazy" decoding="async">
+          <span class="tarjeta__pie">
+            <span class="tarjeta__nombre">${t.nombre}</span>
+            <span class="tarjeta__n">${piezas.length}</span>
+          </span>`;
+        return a;
+      }));
+
+    const cuenta = (clave, valor) => datos.piezas.filter((p) => p[clave] === valor).length;
+    const enlaces = datos.materiales
+      .map((m) => ({ href: `#/${TODO}?m=${m.slug}`, nombre: m.nombre, n: cuenta('material', m.slug) }))
+      .concat(datos.generos
+        .map((g) => ({ href: `#/${TODO}?l=${g.slug}`, nombre: g.nombre, n: cuenta('genero', g.slug) })))
+      .filter((e) => e.n);
+
+    atajos.replaceChildren(...enlaces.map((e) => {
+      const a = document.createElement('a');
+      a.className = 'atajo';
+      a.href = e.href;
+      a.innerHTML = `${e.nombre} <span>${e.n}</span>`;
+      return a;
+    }));
+  }
+
+  /* ── Rutas ────────────────────────────────────────── */
+
+  function leerRuta() {
+    const bruto = location.hash.replace(/^#\/?/, '');
+    const [camino, consulta] = bruto.split('?');
+    const params = new URLSearchParams(consulta || '');
+    const tipo = datos.tipos.some((t) => t.slug === camino) ? camino : (camino === TODO ? TODO : '');
+    const valido = (valor, lista) => (lista.some((x) => x.slug === valor) ? valor : TODO);
+    return {
+      tipo,
+      material: valido(params.get('m'), datos.materiales),
+      linea: valido(params.get('l'), datos.generos),
+    };
+  }
+
+  function escribirRuta({ tipo, material, linea }, reemplazar) {
+    const params = new URLSearchParams();
+    if (material !== TODO) params.set('m', material);
+    if (linea !== TODO) params.set('l', linea);
+    const cadena = params.toString();
+    const destino = `#/${tipo}${cadena ? `?${cadena}` : ''}`;
+    if (location.hash === destino) return;
+    if (reemplazar) history.replaceState(null, '', destino);
+    else location.hash = destino;
+  }
+
+  function navegar() {
+    ruta = leerRuta();
+    const enColeccion = ruta.tipo !== '';
+
+    vistaInicio.hidden = enColeccion;
+    vistaColeccion.hidden = !enColeccion;
+    menu.querySelectorAll('a').forEach((a) => {
+      if (a.dataset.tipo === ruta.tipo) a.setAttribute('aria-current', 'page');
+      else a.removeAttribute('aria-current');
     });
-    return b;
+
+    if (enColeccion) mostrarColeccion();
+    window.scrollTo({ top: 0 });
   }
 
-  function pintarChips() {
-    document.querySelectorAll('.chip').forEach((c) => {
-      c.setAttribute('aria-pressed', String(filtros[c.dataset.grupo] === c.dataset.valor));
-    });
+  /* ── Colección ────────────────────────────────────── */
+
+  function opciones(select, lista, valor) {
+    select.replaceChildren(...lista.map((o) => {
+      const op = document.createElement('option');
+      op.value = o.slug;
+      op.textContent = o.n === undefined ? o.nombre : `${o.nombre} (${o.n})`;
+      if (o.slug === valor) op.selected = true;
+      return op;
+    }));
   }
 
-  function aplicarFiltros() {
-    visibles = piezas.filter((p) =>
-      (filtros.tipo === 'todo' || p.tipo === filtros.tipo) &&
-      (filtros.genero === 'todo' || p.genero === filtros.genero));
+  function mostrarColeccion() {
+    const delTipo = piezasDe(ruta.tipo);
+    $('#col-titulo').textContent = ruta.tipo === TODO ? 'Todo el catálogo' : nombreTipo[ruta.tipo];
+
+    // Cada selector ofrece solo lo que existe dentro de la colección y cuenta ya
+    // con el otro filtro aplicado; si no hay más de una opción, no aparece.
+    const disponibles = (clave, lista, otros) => lista
+      .map((o) => ({ ...o, n: delTipo.filter((p) => p[clave] === o.slug && otros(p)).length }))
+      .filter((o) => o.n);
+
+    const porLinea = (p) => ruta.linea === TODO || p.genero === ruta.linea;
+    const porMaterial = (p) => ruta.material === TODO || p.material === ruta.material;
+    const materiales = disponibles('material', datos.materiales, porLinea);
+    const lineas = disponibles('genero', datos.generos, porMaterial);
+
+    campoMaterial.hidden = materiales.length < 2;
+    campoLinea.hidden = lineas.length < 2;
+    if (campoMaterial.hidden) ruta.material = TODO;
+    if (campoLinea.hidden) ruta.linea = TODO;
+
+    const totalMaterial = delTipo.filter(porLinea).length;
+    const totalLinea = delTipo.filter(porMaterial).length;
+    opciones(selMaterial, [{ slug: TODO, nombre: 'Todos', n: totalMaterial }].concat(materiales), ruta.material);
+    opciones(selLinea, [{ slug: TODO, nombre: 'Todas', n: totalLinea }].concat(lineas), ruta.linea);
+    btnQuitar.hidden = ruta.material === TODO && ruta.linea === TODO;
+
+    visibles = delTipo.filter((p) =>
+      (ruta.material === TODO || p.material === ruta.material) &&
+      (ruta.linea === TODO || p.genero === ruta.linea));
+
+    const partes = [`${visibles.length} ${visibles.length === 1 ? 'pieza' : 'piezas'}`];
+    if (ruta.material !== TODO) partes.push(nombreMaterial[ruta.material]);
+    if (ruta.linea !== TODO) partes.push(nombreGenero[ruta.linea]);
+    $('#col-conteo').textContent = partes.join(' · ');
+
+    mezclaMateriales = new Set(visibles.map((p) => p.material)).size > 1;
 
     rejilla.replaceChildren();
     dibujadas = 0;
     vacio.hidden = visibles.length > 0;
-    conteo.textContent = visibles.length === 1
-      ? '1 pieza'
-      : `${visibles.length} piezas`;
     dibujarTanda();
   }
 
-  /* ── Rejilla ──────────────────────────────────────── */
+  selMaterial.addEventListener('change', () => {
+    escribirRuta({ ...ruta, material: selMaterial.value });
+  });
+  selLinea.addEventListener('change', () => {
+    escribirRuta({ ...ruta, linea: selLinea.value });
+  });
+  btnQuitar.addEventListener('click', () => {
+    escribirRuta({ tipo: ruta.tipo, material: TODO, linea: TODO });
+  });
 
   function dibujarTanda() {
     const hasta = Math.min(dibujadas + POR_TANDA, visibles.length);
@@ -141,9 +245,16 @@
       img.decoding = 'async';
       img.dataset.cargando = '1';
       const listo = () => delete img.dataset.cargando;
-      img.complete ? listo() : img.addEventListener('load', listo, { once: true });
+      if (img.complete) listo();
+      else img.addEventListener('load', listo, { once: true });
 
       b.appendChild(img);
+      if (mezclaMateriales) {
+        const pie = document.createElement('span');
+        pie.className = 'pieza__material';
+        pie.textContent = nombreMaterial[p.material];
+        b.appendChild(pie);
+      }
       frag.appendChild(b);
     }
 
@@ -188,7 +299,8 @@
     const p = visibles[actual];
     visorImg.src = p.full;
     visorImg.alt = `Pieza ${actual + 1} de ${visibles.length}`;
-    visorPie.textContent = `${actual + 1} / ${visibles.length}`;
+    $('#visor-etiqueta').textContent = `${nombreTipo[p.tipo]} · ${nombreMaterial[p.material]}`;
+    $('#visor-conteo').textContent = `${actual + 1} / ${visibles.length}`;
     // Precarga de la siguiente y la anterior para que el paso sea inmediato.
     [1, -1].forEach((d) => {
       const v = visibles[(actual + d + visibles.length) % visibles.length];
@@ -210,7 +322,6 @@
     else if (e.key === 'ArrowLeft') mover(-1);
   });
 
-  // Deslizar en móvil.
   let x0 = null, y0 = null;
   visor.addEventListener('touchstart', (e) => {
     x0 = e.changedTouches[0].clientX;
@@ -223,26 +334,4 @@
     if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) mover(dx < 0 ? 1 : -1);
     x0 = y0 = null;
   }, { passive: true });
-
-  /* ── Hash (permite compartir un filtro) ───────────── */
-
-  function escribirHash() {
-    const partes = [];
-    if (filtros.tipo !== 'todo') partes.push(filtros.tipo);
-    if (filtros.genero !== 'todo') partes.push(filtros.genero);
-    const nuevo = partes.length ? `#${partes.join('-')}` : ' ';
-    history.replaceState(null, '', nuevo === ' ' ? location.pathname : nuevo);
-  }
-
-  function leerHash() {
-    const h = location.hash.replace('#', '');
-    if (!h) return;
-    const tipos = new Set(piezas.map((p) => p.tipo));
-    const generos = new Set(piezas.map((p) => p.genero));
-    h.split('-').forEach((parte) => {
-      if (tipos.has(parte)) filtros.tipo = parte;
-      else if (generos.has(parte)) filtros.genero = parte;
-    });
-    pintarChips();
-  }
 })();
