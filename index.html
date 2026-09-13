@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Joyería Alce — Catálogo</title>
+<meta name="description" content="Catálogo de Joyería Alce: anillos, aretes, collares, pulseras, esclavas y tobilleras en oro 10K y plata fina.">
+<meta name="theme-color" content="#ffffff">
+<link rel="icon" href="assets/img/favicon.png" sizes="180x180">
+<link rel="apple-touch-icon" href="assets/img/favicon.png">
+<meta property="og:title" content="Joyería Alce — Catálogo">
+<meta property="og:description" content="Anillos, aretes, collares, pulseras, esclavas y tobilleras en oro 10K y plata fina.">
+<meta property="og:image" content="assets/img/icono-512.png">
+<meta property="og:type" content="website">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600&family=Jost:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="assets/css/estilos.css">
+</head>
+<body>
+
+<a class="saltar" href="#galeria">Saltar al catálogo</a>
+
+<header class="cabecera" id="inicio">
+  <a class="cabecera__marca" href="#inicio" aria-label="Joyería Alce, inicio">
+    <img src="assets/img/logo.webp" alt="Joyería Alce" width="44" height="45">
+    <span>Joyería Alce</span>
+  </a>
+  <a class="cabecera__enlace" href="#galeria">Catálogo</a>
+</header>
+
+<main>
+
+  <section class="portada">
+    <img class="portada__logo" src="assets/img/logo.webp" alt="Joyería Alce" width="220" height="225" fetchpriority="high">
+    <h1 class="portada__titulo">Catálogo</h1>
+    <p class="portada__texto">Oro 10K y plata fina. Piezas seleccionadas para cada día y para las ocasiones que se recuerdan.</p>
+    <a class="portada__cta" href="#galeria">Ver colección</a>
+  </section>
+
+  <div class="filtros" id="filtros">
+    <div class="filtros__caja">
+      <div class="filtros__fila" role="group" aria-label="Filtrar por tipo de pieza" id="filtro-tipo"></div>
+      <div class="filtros__fila filtros__fila--sec" role="group" aria-label="Filtrar por línea" id="filtro-genero"></div>
+    </div>
+  </div>
+
+  <section class="galeria" id="galeria" aria-label="Catálogo de piezas">
+    <p class="galeria__conteo" id="conteo" role="status"></p>
+    <div class="rejilla" id="rejilla"></div>
+    <p class="galeria__vacio" id="vacio" hidden>No hay piezas en esta combinación.</p>
+    <div id="centinela" aria-hidden="true"></div>
+  </section>
+
+</main>
+
+<footer class="pie">
+  <img src="assets/img/logo.webp" alt="" width="64" height="65" loading="lazy">
+  <p class="pie__marca">Joyería Alce</p>
+  <p class="pie__nota">Oro 10K · Plata fina</p>
+</footer>
+
+<div class="visor" id="visor" role="dialog" aria-modal="true" aria-label="Vista ampliada" hidden>
+  <button class="visor__btn visor__btn--cerrar" id="visor-cerrar" aria-label="Cerrar">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+  </button>
+  <button class="visor__btn visor__btn--prev" id="visor-prev" aria-label="Anterior">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 5l-7 7 7 7"/></svg>
+  </button>
+  <button class="visor__btn visor__btn--sig" id="visor-sig" aria-label="Siguiente">
+    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7"/></svg>
+  </button>
+  <figure class="visor__marco">
+    <img id="visor-img" alt="Pieza del catálogo">
+  </figure>
+  <p class="visor__pie" id="visor-pie"></p>
+</div>
+
+<script src="assets/js/app.js" defer></script>
+</body>
+</html>
