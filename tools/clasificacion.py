@@ -371,3 +371,67 @@ def cargar():
         tipo, genero = ruta.split("/")
         mapa[int(idx)] = (tipo, genero)
     return mapa
+
+
+# Material de cada pieza, leido de la propia foto ("Oro 10K", "plata italy 925",
+# "PLATA FINA"). La mayoria del catalogo es oro 10K, asi que aqui solo se listan
+# las piezas de la linea de plata 925; el resto se toma como oro.
+PLATA = """
+anillos-hombre-001  anillos-mujer-002  anillos-mujer-009
+anillos-mujer-013  anillos-mujer-016  anillos-mujer-017
+anillos-mujer-019  anillos-mujer-020  anillos-mujer-022
+anillos-mujer-029  anillos-mujer-032  anillos-mujer-037
+anillos-mujer-038  anillos-mujer-039  anillos-mujer-042
+anillos-mujer-043  anillos-mujer-046  anillos-mujer-049
+anillos-mujer-053  anillos-mujer-055  anillos-mujer-056
+anillos-mujer-057  aretes-mujer-002  aretes-mujer-004
+aretes-mujer-005  aretes-mujer-006  aretes-mujer-007
+aretes-mujer-010  aretes-mujer-015  aretes-mujer-016
+aretes-mujer-018  aretes-mujer-019  aretes-mujer-020
+aretes-mujer-021  aretes-mujer-024  aretes-mujer-027
+aretes-mujer-028  aretes-mujer-030  aretes-mujer-031
+aretes-mujer-032  aretes-mujer-035  aretes-mujer-036
+aretes-mujer-037  aretes-mujer-038  aretes-mujer-039
+aretes-mujer-040  aretes-mujer-042  aretes-mujer-044
+aretes-mujer-045  aretes-mujer-046  aretes-mujer-048
+aretes-mujer-049  aretes-mujer-052  aretes-mujer-053
+aretes-mujer-054  aretes-mujer-055  aretes-mujer-057
+aretes-mujer-060  aretes-mujer-061  aretes-mujer-062
+aretes-mujer-064  aretes-mujer-065  aretes-mujer-067
+aretes-mujer-069  aretes-mujer-070  aretes-mujer-073
+aretes-mujer-075  aretes-mujer-076  aretes-mujer-077
+aretes-mujer-078  aretes-mujer-079  aretes-mujer-081
+aretes-mujer-083  aretes-mujer-084  aretes-mujer-085
+aretes-mujer-086  aretes-mujer-088  aretes-mujer-091
+aretes-mujer-092  aretes-mujer-093  aretes-mujer-094
+aretes-mujer-095  aretes-mujer-097  aretes-mujer-098
+aretes-mujer-099  aretes-mujer-100  aretes-mujer-101
+aretes-mujer-102  aretes-mujer-103  aretes-mujer-104
+aretes-mujer-105  aretes-mujer-106  aretes-mujer-107
+aretes-mujer-108  aretes-mujer-109  aretes-mujer-115
+aretes-mujer-116  aretes-mujer-117  aretes-mujer-118
+aretes-mujer-119  aretes-mujer-121  aretes-mujer-122
+aretes-mujer-123  aretes-mujer-124  aretes-mujer-125
+aretes-mujer-126  aretes-mujer-127  aretes-mujer-128
+aretes-mujer-131  aretes-mujer-132  aretes-mujer-134
+aretes-mujer-135  aretes-mujer-136  aretes-mujer-137
+aretes-mujer-140  aretes-mujer-141  aretes-mujer-142
+aretes-mujer-143  aretes-mujer-144  aretes-mujer-145
+aretes-mujer-147  aretes-mujer-148  aretes-mujer-149
+aretes-mujer-150  aretes-mujer-151  aretes-mujer-152
+aretes-mujer-154  aretes-mujer-155  aretes-mujer-157
+aretes-mujer-159  aretes-mujer-161  aretes-mujer-163
+aretes-mujer-164  aretes-mujer-165  aretes-mujer-166
+aretes-mujer-167  aretes-mujer-170  aretes-mujer-176
+aretes-mujer-178  collares-mujer-001  collares-mujer-002
+collares-mujer-005  collares-mujer-009  collares-mujer-011
+collares-mujer-015  collares-mujer-026  collares-mujer-027
+collares-mujer-032  pulseras-mujer-004  pulseras-mujer-007
+pulseras-mujer-011  pulseras-mujer-013  pulseras-mujer-015
+pulseras-mujer-017  pulseras-mujer-019
+"""
+
+
+def cargar_materiales():
+    """Devuelve el conjunto de identificadores de piezas de plata 925."""
+    return set(PLATA.split())
