@@ -241,6 +241,7 @@
       img.alt = '';
       img.width = p.w;
       img.height = p.h;
+      img.style.aspectRatio = `${p.w} / ${p.h}`;
       img.loading = i < 8 ? 'eager' : 'lazy';
       img.decoding = 'async';
       img.dataset.cargando = '1';
@@ -248,6 +249,7 @@
       if (img.complete) listo();
       else img.addEventListener('load', listo, { once: true });
 
+      b.dataset.rel = String(p.h / p.w);
       b.appendChild(img);
       if (mezclaMateriales) {
         const pie = document.createElement('span');
@@ -260,7 +262,43 @@
 
     rejilla.appendChild(frag);
     dibujadas = hasta;
+    acomodar();
   }
+
+  /* Mosaico: cada pieza ocupa las filas que le tocan segun la proporcion de su
+     foto, que ya conocemos por el indice. Asi el alto de la rejilla es exacto
+     desde el primer momento y no cambia cuando las imagenes terminan de cargar
+     (con columnas CSS, Safari movil dejaba el documento mas alto que su
+     contenido y se podia seguir bajando despues del pie). */
+  function acomodar() {
+    const estilo = getComputedStyle(rejilla);
+    const anchoCol = parseFloat(estilo.gridTemplateColumns);
+    const fila = parseFloat(estilo.gridAutoRows);
+    const hueco = parseFloat(estilo.columnGap) || 0;
+    if (!anchoCol || !fila) return;
+
+    const etiqueta = mezclaMateriales
+      ? parseFloat(getComputedStyle(document.documentElement)
+        .getPropertyValue('--alto-etiqueta')) + 1
+      : 0;
+
+    rejilla.querySelectorAll('.pieza').forEach((el) => {
+      // alto = foto + etiqueta + bordes + el margen que separa una pieza de otra
+      const alto = (anchoCol - 2) * Number(el.dataset.rel) + etiqueta + 2 + hueco;
+      const filas = Math.max(1, Math.round(alto / fila));
+      el.style.gridRowEnd = `span ${filas}`;
+    });
+  }
+
+  // Al cambiar el ancho (girar el telefono, redimensionar) hay que recalcular.
+  let anchoPrevio = 0;
+  new ResizeObserver(() => {
+    const ancho = rejilla.clientWidth;
+    if (ancho && ancho !== anchoPrevio) {
+      anchoPrevio = ancho;
+      acomodar();
+    }
+  }).observe(rejilla);
 
   rejilla.addEventListener('click', (e) => {
     const pieza = e.target.closest('.pieza');
@@ -269,7 +307,7 @@
 
   new IntersectionObserver((entradas) => {
     if (entradas.some((en) => en.isIntersecting) && dibujadas < visibles.length) dibujarTanda();
-  }, { rootMargin: '900px 0px' }).observe(centinela);
+  }, { rootMargin: '600px 0px' }).observe(centinela);
 
   /* ── Visor ────────────────────────────────────────── */
 
