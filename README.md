@@ -49,10 +49,14 @@ El script regenera las carpetas de `catalogo/` y `data/catalogo.json`.
 
 ## Publicar en GitHub Pages
 
-En **Settings → Pages** hay dos opciones equivalentes:
+El flujo `.github/workflows/pages.yml` publica en cada push a `main` y, como
+usa `configure-pages` con `enablement: true`, activa GitHub Pages por sí solo
+la primera vez que corre.
 
+Si la organización no permite que Actions active Pages, hazlo a mano en
+**Settings → Pages** con cualquiera de estas dos opciones:
+
+- **GitHub Actions** como origen (deja que el flujo publique).
 - **Deploy from a branch**: rama `main`, carpeta `/ (root)`.
-- **GitHub Actions**: usa el flujo incluido en `.github/workflows/pages.yml`,
-  que publica en cada push a `main`.
 
 La página queda en `https://<usuario>.github.io/Joyeria-Alce/`.
