@@ -17,7 +17,7 @@ import sys
 from PIL import Image, ImageOps
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from clasificacion import cargar, cargar_materiales  # noqa: E402
+from clasificacion import cargar, cargar_nuevas, materiales_por_id  # noqa: E402
 
 RAIZ = pathlib.Path(__file__).resolve().parent.parent
 DESTINO = RAIZ / "catalogo"
@@ -31,6 +31,7 @@ ETIQUETAS = {
     "anillos": "Anillos",
     "aretes": "Aretes",
     "collares": "Collares",
+    "dijes": "Dijes",
     "esclavas": "Esclavas",
     "juegos": "Juegos",
     "pulseras": "Pulseras",
@@ -38,12 +39,15 @@ ETIQUETAS = {
 }
 GENEROS = {"mujer": "Mujer", "hombre": "Hombre", "ninos": "Niños"}
 MATERIALES = {"plata": "Plata 925", "oro": "Oro 10K"}
-ORDEN_TIPOS = ["anillos", "aretes", "collares", "pulseras", "esclavas", "tobilleras", "juegos"]
+ORDEN_TIPOS = ["anillos", "aretes", "collares", "dijes", "pulseras", "esclavas",
+               "tobilleras", "juegos"]
 
 # Foto que representa a cada coleccion en el inicio. Si un tipo no aparece aqui
 # se usa su primera pieza.
 PORTADAS = {
+    "dijes": "dijes-mujer-003",
     "esclavas": "esclavas-hombre-007",
+    "pulseras": "pulseras-mujer-027",
     "tobilleras": "tobilleras-mujer-007",
     "juegos": "juegos-mujer-002",
 }
@@ -114,22 +118,48 @@ def convertir(origenes, mapa):
     return rutas
 
 
+def agregar(carpetas):
+    """Convierte las fotos de una tanda nueva en las carpetas que ya existen."""
+    asignadas = cargar_nuevas()
+    encontradas = {}
+    for carpeta in carpetas:
+        for ruta in pathlib.Path(carpeta).rglob("*.JPG"):
+            if "__MACOSX" in str(ruta):
+                continue
+            if ruta.name in asignadas:
+                encontradas[ruta.name] = ruta
+
+    faltan = set(asignadas) - set(encontradas)
+    if faltan:
+        sys.exit(f"No se encontraron {len(faltan)} fotos de la tabla NUEVAS, "
+                 f"por ejemplo: {sorted(faltan)[0]}")
+
+    for nombre, (tipo, genero, _material, pid) in sorted(asignadas.items()):
+        imagen = ImageOps.exif_transpose(Image.open(encontradas[nombre])).convert("RGB")
+        carpeta = DESTINO / tipo / genero
+        guardar_webp(imagen, carpeta / f"{pid}.webp", FULL_MAX, FULL_Q)
+        guardar_webp(imagen, carpeta / "thumbs" / f"{pid}.webp", THUMB_MAX, THUMB_Q)
+    print(f"{len(asignadas)} fotos nuevas convertidas")
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--origen", nargs="+", help="Carpetas con los JPG originales")
     parser.add_argument("--solo-datos", action="store_true",
                         help="Regenera data/catalogo.json sin volver a convertir imagenes")
+    parser.add_argument("--agregar", nargs="+",
+                        help="Carpetas con fotos nuevas ya listadas en clasificacion.NUEVAS")
     args = parser.parse_args()
 
-    mapa = cargar()
-    if args.solo_datos:
-        rutas = sorted(p for p in DESTINO.rglob("*.webp") if p.parent.name != "thumbs")
+    if args.agregar:
+        agregar(args.agregar)
     elif args.origen:
-        rutas = convertir(args.origen, mapa)
-    else:
-        parser.error("indica --origen o --solo-datos")
+        convertir(args.origen, cargar())
+    elif not args.solo_datos:
+        parser.error("indica --origen, --agregar o --solo-datos")
 
-    plata = cargar_materiales()
+    rutas = sorted(p for p in DESTINO.rglob("*.webp") if p.parent.name != "thumbs")
+    materiales = materiales_por_id()
     piezas = []
     for ruta in rutas:
         tipo, genero = ruta.parent.parent.name, ruta.parent.name
@@ -140,7 +170,7 @@ def main():
             "id": pid,
             "tipo": tipo,
             "genero": genero,
-            "material": "plata" if pid in plata else "oro",
+            "material": materiales.get(pid, "oro"),
             "full": f"catalogo/{tipo}/{genero}/{ruta.name}",
             "thumb": f"catalogo/{tipo}/{genero}/thumbs/{ruta.name}",
             "w": ancho,
