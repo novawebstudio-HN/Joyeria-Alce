@@ -6,9 +6,9 @@ escritorio y no necesita servidor: son archivos HTML, CSS, JS e imágenes.
 
 ## Cómo se navega
 
-- **Inicio**: una tarjeta por colección (Anillos, Aretes, Collares, Pulseras,
-  Esclavas, Tobilleras, Juegos) con su portada y su número de piezas, más
-  accesos directos por material y por línea.
+- **Inicio**: una tarjeta por colección (Anillos, Aretes, Collares, Dijes,
+  Pulseras, Esclavas, Tobilleras, Juegos) con su portada y su número de piezas,
+  más accesos directos por material y por línea.
 - **Colección**: solo las piezas de esa colección, con dos selectores —
   **Material** (Oro 10K / Plata 925) y **Línea** (Mujer / Hombre / Niños)—.
   Cada selector muestra únicamente lo que existe en esa colección, cuenta ya con
@@ -27,19 +27,19 @@ index.html                 Página única
 assets/css/estilos.css     Estilos (base blanca, dorado del logo como acento)
 assets/js/app.js           Vistas, filtros, rejilla y visor de imágenes
 assets/img/                Logo y favicons
-data/catalogo.json         Índice de las 360 piezas (lo genera el script)
+data/catalogo.json         Índice de las 571 piezas (lo genera el script)
 catalogo/<tipo>/<línea>/   Imágenes en WebP + subcarpeta thumbs/ para la rejilla
 tools/build_catalogo.py    Script que convierte, renombra y organiza las fotos
 tools/clasificacion.py     Tipo, línea y material de cada foto
 ```
 
-Tipos: `anillos`, `aretes`, `collares`, `pulseras`, `esclavas`, `tobilleras`,
-`juegos`. Líneas: `mujer`, `hombre`, `ninos`. Materiales: `oro` (10K) y
-`plata` (925).
+Tipos: `anillos`, `aretes`, `collares`, `dijes`, `pulseras`, `esclavas`,
+`tobilleras`, `juegos`. Líneas: `mujer`, `hombre`, `ninos`. Materiales: `oro`
+(10K) y `plata` (925).
 
 ## Las imágenes
 
-Las fotos originales venían en dos ZIP con nombres tipo
+Las fotos llegan en ZIP con nombres tipo
 `0103caad-3c9e-42b1-95f9-ffe40483b282.JPG`. El script las convierte a WebP en
 dos tamaños y las renombra a `<tipo>-<línea>-<número>.webp`:
 
@@ -55,21 +55,29 @@ El material sale de lo que dice la propia foto (`Oro 10K`, `plata italy 925`,
 `PLATA FINA`). Si alguna pieza quedó mal clasificada, se corrige en
 `tools/clasificacion.py` y se vuelve a generar el índice.
 
-## Agregar o cambiar fotos
+## Agregar una tanda de fotos nuevas
 
-1. Copia los JPG nuevos a una carpeta.
-2. Añade su clasificación en `tools/clasificacion.py`: el tipo y la línea en
-   `CLASIFICACION` (`índice tipo/línea`) y, si es de plata, su identificador en
-   `PLATA`.
-3. Ejecuta:
+1. Descomprime los ZIP en una carpeta.
+2. Descarta las fotos que ya estén publicadas (llegan repetidas entre tandas).
+3. Añade una línea por foto en `NUEVAS`, dentro de `tools/clasificacion.py`:
 
-```bash
-pip install Pillow
-python3 tools/build_catalogo.py --origen "carpeta-1" "carpeta-2"
-```
+   ```
+   <archivo>.JPG <tipo>/<línea> <material>
+   ```
 
-El script regenera las carpetas de `catalogo/` y `data/catalogo.json`. Si solo
-cambiaste la clasificación y no hay fotos nuevas, basta con
+4. Ejecuta:
+
+   ```bash
+   pip install Pillow
+   python3 tools/build_catalogo.py --agregar "carpeta-con-las-fotos"
+   ```
+
+El script numera cada pieza continuando la carpeta que le toca (`BASE` guarda
+cuántas había en la primera tanda, así el identificador de una foto no depende
+del orden en que se lean los archivos), la convierte a WebP en los dos tamaños
+y regenera `data/catalogo.json`.
+
+Si solo cambiaste la clasificación y no hay fotos nuevas, basta con
 `python3 tools/build_catalogo.py --solo-datos`, que reescribe el índice sin
 volver a comprimir las imágenes.
 
